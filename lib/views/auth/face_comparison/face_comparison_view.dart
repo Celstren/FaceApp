@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:FaceApp/navigation/navigation_controller.dart';
+import 'package:FaceApp/navigation/navigation_tabs.dart';
 import 'package:FaceApp/services/auth/authentication_repository.dart';
 import 'package:FaceApp/utils/widgets/global_dialogs.dart';
 import 'package:flutter/material.dart';
@@ -48,17 +50,22 @@ class _FaceComparisonViewState extends State<FaceComparisonView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Face Comparison View'),
-      ),
-      backgroundColor: Colors.white,
-      body: _buildComparator(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _authenticateFace,
-        child: const Icon(Icons.file_upload),
-      ),
-    );
+    return WillPopScope(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Verificación Facial'),
+          ),
+          backgroundColor: Colors.white,
+          body: _buildComparator(),
+          floatingActionButton: FloatingActionButton(
+            onPressed: _authenticateFace,
+            child: const Icon(Icons.file_upload),
+          ),
+        ),
+        onWillPop: () async {
+          NavigationController.navigation = NavigationTabs(NavTab.FaceDetection);
+          return false;
+        });
   }
 
   Widget _buildComparator() {
