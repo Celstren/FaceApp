@@ -11,12 +11,10 @@ class AuthenticationRepository {
     Response response = await AuthenticationProvider.verifyFace(photo, subjectId: subjectId, galleryName: galleryName);
     if (response == null) return false;
     if ((response.statusCode == 201 || response.statusCode == 200) && response.data["images"] != null) {
-      response.data["images"].forEach((element) {
-        FaceTransaction faceTransaction = FaceTransaction.fromJson(element["transaction"]);
-        if (faceTransaction.confidence >= ConstantHelper.MinConfidence) {
-          return true;
-        }
-      });
+      var found = response.data["images"].firstWhere((element){
+        return FaceTransaction.fromJson(element["transaction"]).confidence >= ConstantHelper.MinConfidence;
+      }, orElse: () => null);
+      return found != null;
     }
     return false;
   }

@@ -3,51 +3,47 @@ import 'dart:io';
 import 'package:FaceApp/services/auth/authentication_repository.dart';
 import 'package:FaceApp/utils/widgets/global_dialogs.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_exif_rotation/flutter_exif_rotation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' show join;
 
 class FaceComparisonView extends StatefulWidget {
-  final List<int> bytes;
-  FaceComparisonView({Key key, this.bytes}) : super(key: key);
+  final String path;
+  FaceComparisonView({Key key, this.path}) : super(key: key);
 
   @override
   _FaceComparisonViewState createState() => _FaceComparisonViewState();
 }
 
 class _FaceComparisonViewState extends State<FaceComparisonView> {
-  File photoFile;
-  bool _processingBytes = true;
+  bool _processingBytes = false;
+  File photo;
 
   @override
   void initState() {
-    initializePhoto();
+    renderScreenshot();
     super.initState();
   }
 
-  void initializePhoto() async {
-    try {
-      if (widget.bytes != null) {
-        _processingBytes = true;
-        final path = join((await getTemporaryDirectory()).path, '${DateTime.now().millisecondsSinceEpoch}.png');
-        File _file = await File(path).writeAsBytes(widget.bytes);
-        photoFile = await FlutterExifRotation.rotateAndSaveImage(path: _file.path);
-      }
-    } catch (e) {
-      print(e);
+  void renderScreenshot() {
+    if (mounted) {
+      setState(() {
+        photo = File(widget.path);
+      });
     }
-    setState(() {
-      _processingBytes = false;
-    });
   }
 
   void _authenticateFace() async {
-    bool success = await AuthenticationRepository.verifyFace(photoFile, subjectId: "71625040", galleryName: "MyGallery");
+    setState(() {
+      _processingBytes = true;
+    });
+    bool success = await AuthenticationRepository.verifyFace(photo,
+        subjectId: "71625040", galleryName: "MyGallery");
     if (success) {
       GlobalDialogs.displayGeneralDialog(text: "Exito");
     } else {
       GlobalDialogs.displayGeneralDialog(text: "Fallo");
     }
+    setState(() {
+      _processingBytes = false;
+    });
   }
 
   @override
@@ -84,12 +80,15 @@ class _FaceComparisonViewState extends State<FaceComparisonView> {
                     ),
                   ),
                 )
-              : (photoFile != null
-                  ? Image(
-                      height: 350,
-                      width: 350,
-                      image: FileImage(photoFile),
-                      fit: BoxFit.cover,
+              : (photo != null
+                  ? Column(
+                      children: <Widget>[
+                        Image.file(
+                          photo,
+                          height: 300,
+                          width: 300,
+                        ),
+                      ],
                     )
                   : SizedBox(
                       height: 350,

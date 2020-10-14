@@ -1,8 +1,6 @@
 import 'package:FaceApp/services/config/LoggingInterceptor.dart';
 import 'package:FaceApp/services/core/core.dart';
 import 'package:FaceApp/services/keys/prod_keys.dart';
-import 'package:FaceApp/utils/widgets/global_dialogs.dart';
-import 'package:connectivity/connectivity.dart';
 import 'package:dio/dio.dart';
 
 Dio get dioClient {
