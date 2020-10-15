@@ -5,7 +5,7 @@ class NavigationController {
   static NavigationController _instance;
   static dynamic parameters;
 
-  static BehaviorSubject<NavigationTabs> _navigationController = BehaviorSubject.seeded(NavigationTabs(NavTab.FaceDetection));
+  static BehaviorSubject<NavigationTabs> _navigationController = BehaviorSubject.seeded(NavigationTabs(NavTab.LoginDni));
 
   NavigationController._();
 

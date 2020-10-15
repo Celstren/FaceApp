@@ -5,7 +5,8 @@ class NavigationTabs {
 }
 
 enum NavTab {
-  Login,
+  LoginDni,
+  FaceEnroll,
   FaceDetection,
-  FaceComparison,
+  Home,
 }

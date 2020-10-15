@@ -1,10 +1,10 @@
-import 'dart:io';
-
 import 'package:FaceApp/navigation/navigation_controller.dart';
 import 'package:FaceApp/navigation/navigation_tabs.dart';
 import 'package:FaceApp/utils/widgets/global_dialogs.dart';
-import 'package:FaceApp/views/auth/face_comparison/face_comparison_view.dart';
 import 'package:FaceApp/views/auth/face_detection/face_detection_view.dart';
+import 'package:FaceApp/views/auth/face_enroll/face_enroll_view.dart';
+import 'package:FaceApp/views/auth/login_by_dni/login_dni_view.dart';
+import 'package:FaceApp/views/home/home.dart';
 import 'package:flutter/material.dart';
 
 class FaceApp extends StatefulWidget {
@@ -35,14 +35,17 @@ class _FaceAppState extends State<FaceApp> {
         stream: NavigationController.navigationStream,
         builder: (BuildContext context, AsyncSnapshot<NavigationTabs> snapshot) {
           switch (snapshot?.data?.tab) {
-            case NavTab.Login:
-              return Scaffold();
+            case NavTab.LoginDni:
+              return LoginDniView();
               break;
             case NavTab.FaceDetection:
-              return FaceDetectionView();
+              return FaceDetectionView(dni: snapshot.data.params is String ? snapshot.data.params : null);
               break;
-            case NavTab.FaceComparison:
-              return FaceComparisonView(path: snapshot.data.params is String ? snapshot.data.params : null);
+            case NavTab.FaceEnroll:
+              return FaceEnrollView();
+              break;
+            case NavTab.Home:
+              return HomeView();
               break;
           }
           return Scaffold();

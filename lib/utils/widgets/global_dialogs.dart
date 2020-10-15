@@ -36,7 +36,7 @@ class GlobalDialogs {
     }
   }
 
-  static displayGeneralDialog({String text}) {
+  static displayGeneralDialog({String text = "", String buttonText = "Ok", Function onPress}) {
     if (_context != null) {
       showCustomDialog(
         context: _context,
@@ -44,8 +44,13 @@ class GlobalDialogs {
           backgroundColor: Colors.transparent,
           child: OkDialog(
             title: text,
-            okText: "Ok",
-            onPress: () => Navigator.pop(_context),
+            okText: buttonText,
+            onPress: () {
+              Navigator.pop(_context);
+              if (onPress != null) {
+                onPress();
+              }
+            },
           ),
         ),
       );
