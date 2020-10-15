@@ -18,7 +18,9 @@ class _LoginDniViewState extends State<LoginDniView> {
     return SafeArea(
       child: Scaffold(
         backgroundColor: AppColors.DarkLiver,
-        body: _buildContent(),
+        body: SingleChildScrollView(
+          child: _buildContent(),
+        ),
       ),
     );
   }
@@ -94,27 +96,19 @@ class _LoginDniViewState extends State<LoginDniView> {
               },
               child: Center(
                 child: Text(
-                  "Continuar",
+                  "Ingresar",
                   style:
                       AppTextStyle.whiteStyle(fontSize: AppFontSizes.subitle16),
                 ),
               ),
             ),
           ),
-          SizedBox(height: 20),
+          SizedBox(height: 60),
+          Text("No estás registrado aún?", style: AppTextStyle.whiteStyle(fontSize: AppFontSizes.subitle16)),
+          SizedBox(height: 10),
           Container(
             height: 40,
             width: 200,
-            decoration: BoxDecoration(
-              borderRadius: AppBorderRadius.all(radius: AppRadius.radius15),
-              color: AppColors.ShadowBlue,
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: AppColors.PrimaryBlack.withAlpha(50),
-                  offset: Offset(2.0, 2.0),
-                ),
-              ],
-            ),
             child: FlatButton(
               padding: EdgeInsets.zero,
               onPressed: () {
@@ -123,9 +117,9 @@ class _LoginDniViewState extends State<LoginDniView> {
               },
               child: Center(
                 child: Text(
-                  "Registrar",
+                  "Registrate aquí",
                   style:
-                      AppTextStyle.whiteStyle(fontSize: AppFontSizes.subitle16),
+                      AppTextStyle.blueStyle(fontSize: AppFontSizes.subitle16, decoration: TextDecoration.underline),
                 ),
               ),
             ),

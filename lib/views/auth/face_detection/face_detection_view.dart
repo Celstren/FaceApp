@@ -34,6 +34,7 @@ class _FaceDetectionViewState extends State<FaceDetectionView>
   Rect scannerRect, scannerCenterRect;
   double minFaceWidth = 0, minFaceHeight = 0;
   bool sizesInitialized = false;
+  String configError;
 
   @override
   void initState() {
@@ -76,8 +77,10 @@ class _FaceDetectionViewState extends State<FaceDetectionView>
       );
       scannerCenterRect = Rect.fromCenter(
         center: scannerRect.center,
-        width: MediaQuery.of(context).size.width * .1,
-        height: MediaQuery.of(context).size.height * .1,
+        width: MediaQuery.of(context).size.width *
+            ConstantHelper.ScannerCenterWidthPercentage,
+        height: MediaQuery.of(context).size.height *
+            ConstantHelper.ScannerCenterHeightPercentage,
       );
       minFaceWidth = MediaQuery.of(context).size.width *
           ConstantHelper.MinFaceWidthPercentage;
@@ -88,41 +91,50 @@ class _FaceDetectionViewState extends State<FaceDetectionView>
   }
 
   Future<void> _initializeCamera() async {
-    //Aqui obtengo la camara
-    CameraDescription description = await getCamera(_direction);
-    if (description != null) {
-      ImageRotation rotation =
-          rotationIntToImageRotation(description.sensorOrientation);
+    try {
+      //Aqui obtengo la camara
+      CameraDescription description = await getCamera(_direction);
+      if (description != null) {
+        ImageRotation rotation =
+            rotationIntToImageRotation(description.sensorOrientation);
 
-      // Aqui defino el controlador de la camara que voy a usar
-      _camera = CameraController(
-        description,
-        defaultTargetPlatform == TargetPlatform.iOS
-            ? ResolutionPreset.low
-            : ResolutionPreset.medium,
-      );
-      await _camera.initialize();
-
-      _camera.startImageStream((CameraImage image) {
-        if (_isDetecting) return;
-
-        _isDetecting = true;
-        _isProcessingPhoto = false;
-
-        detect(image, _getDetectionMethod(), rotation).then(
-          (dynamic result) {
-            setState(() {
-              _scanResults = result;
-            });
-
-            _isDetecting = false;
-          },
-        ).catchError(
-          (_) {
-            _isDetecting = false;
-          },
+        // Aqui defino el controlador de la camara que voy a usar
+        _camera = CameraController(
+          description,
+          defaultTargetPlatform == TargetPlatform.iOS
+              ? ResolutionPreset.low
+              : ResolutionPreset.medium,
         );
-      });
+        await _camera.initialize();
+
+        _camera.startImageStream((CameraImage image) {
+          if (_isDetecting) return;
+
+          _isDetecting = true;
+          _isProcessingPhoto = false;
+
+          detect(image, _getDetectionMethod(), rotation).then(
+            (dynamic result) {
+              setState(() {
+                _scanResults = result;
+              });
+
+              _isDetecting = false;
+            },
+          ).catchError(
+            (_) {
+              _isDetecting = false;
+            },
+          );
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          configError = "No se pudo encontrar cámaras en el dispositivo";
+        });
+      }
+      print(e);
     }
   }
 
@@ -155,20 +167,28 @@ class _FaceDetectionViewState extends State<FaceDetectionView>
   }
 
   HandleDetection _getDetectionMethod() {
-    final FirebaseVision mlVision = FirebaseVision.instance;
+    try {
+      final FirebaseVision mlVision = FirebaseVision.instance;
 
-    switch (_currentDetector) {
-      case Detector.text:
-        return mlVision.textRecognizer().processImage;
-      case Detector.barcode:
-        return mlVision.barcodeDetector().detectInImage;
-      // case Detector.label:
-      //   return mlVision.labelDetector().detectInImage;
-      // case Detector.cloudLabel:
-      //   return mlVision.cloudLabelDetector().detectInImage;
-      default:
-        assert(_currentDetector == Detector.face);
-        return mlVision.faceDetector().processImage;
+      switch (_currentDetector) {
+        case Detector.text:
+          return mlVision.textRecognizer().processImage;
+        case Detector.barcode:
+          return mlVision.barcodeDetector().detectInImage;
+        // case Detector.label:
+        //   return mlVision.labelDetector().detectInImage;
+        // case Detector.cloudLabel:
+        //   return mlVision.cloudLabelDetector().detectInImage;
+        default:
+          assert(_currentDetector == Detector.face);
+          return mlVision.faceDetector().processImage;
+      }
+    } catch (e) {
+      setState(() {
+        configError = "No se pudo cargar el servicio de detección facial";
+      });
+      print(e);
+      return null;
     }
   }
 
@@ -230,6 +250,13 @@ class _FaceDetectionViewState extends State<FaceDetectionView>
     );
   }
 
+  // Widget _buildScannerCenterArea() {
+  //   if (scannerCenterRect == null) return Container();
+  //   return CustomPaint(
+  //     painter: RectPainter(MediaQuery.of(context).size, scannerCenterRect),
+  //   );
+  // }
+
   Widget _buildContent() {
     return Container(
       constraints: const BoxConstraints.expand(),
@@ -249,31 +276,36 @@ class _FaceDetectionViewState extends State<FaceDetectionView>
                 CameraPreview(_camera),
                 _buildResults(),
                 _buildScannerArea(),
-                Padding(
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).size.height * .1,
-                    left: MediaQuery.of(context).size.width * .2,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: <Widget>[
-                      SizedBox(
-                        height: 80,
-                        width: 80,
-                        child: FlatButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            NavigationController.navigation =
-                                NavigationTabs(NavTab.LoginDni);
-                          },
-                          child: Icon(
-                            Icons.arrow_back,
-                            size: 50,
-                            color: AppColors.PrimaryWhite,
+                // _buildScannerCenterArea(),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).size.height * .01,
+                      left: MediaQuery.of(context).size.width * .05,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        SizedBox(
+                          height: 80,
+                          width: 80,
+                          child: FlatButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              NavigationController.navigation =
+                                  NavigationTabs(NavTab.LoginDni);
+                            },
+                            child: Icon(
+                              Icons.close,
+                              size: 50,
+                              color: AppColors.PrimaryWhite,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 Padding(
@@ -395,15 +427,28 @@ class _FaceDetectionViewState extends State<FaceDetectionView>
     _initSizes();
     return WillPopScope(
         child: Scaffold(
-          body: _buildContent(),
-          floatingActionButton: FloatingActionButton(
-            onPressed: _toggleCameraDirection,
-            child: _isToggling
-                ? CircularProgressIndicator()
-                : _direction == CameraLensDirection.back
-                    ? const Icon(Icons.camera_front)
-                    : const Icon(Icons.camera_rear),
-          ),
+          backgroundColor: AppColors.DarkLiver,
+          body: configError == null
+              ? _buildContent()
+              : Center(
+                  child: Text(
+                    configError,
+                    style: AppTextStyle.whiteStyle(
+                      fontSize: AppFontSizes.title24,
+                      fontFamily: AppFonts.Montserrat_Black,
+                    ),
+                  ),
+                ),
+          floatingActionButton: configError == null
+              ? FloatingActionButton(
+                  onPressed: _toggleCameraDirection,
+                  child: _isToggling
+                      ? CircularProgressIndicator()
+                      : _direction == CameraLensDirection.back
+                          ? const Icon(Icons.camera_front)
+                          : const Icon(Icons.camera_rear),
+                )
+              : null,
         ),
         onWillPop: () async {
           NavigationController.navigation = NavigationTabs(NavTab.LoginDni);

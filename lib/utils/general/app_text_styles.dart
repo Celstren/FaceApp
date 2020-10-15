@@ -3,6 +3,29 @@ import 'package:FaceApp/utils/general/app_fonts.dart';
 import 'package:flutter/material.dart';
 
 class AppTextStyle {
+
+  static TextStyle blueStyle({
+    String fontFamily = AppFonts.Montserrat_Regular,
+    double fontSize = 16,
+    List<Shadow> shadows,
+    FontWeight fontWeight,
+    FontStyle fontStyle,
+    double letterSpacing,
+    double wordSpacing,
+    TextDecoration decoration,
+  }) =>
+      TextStyle(
+        color: AppColors.PrimaryLightBlue,
+        fontFamily: fontFamily,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        fontStyle: fontStyle,
+        shadows: shadows,
+        letterSpacing: letterSpacing,
+        wordSpacing: wordSpacing,
+        decoration: decoration,
+      );
+
   static TextStyle whiteStyle({
     String fontFamily = AppFonts.Montserrat_Regular,
     double fontSize = 16,

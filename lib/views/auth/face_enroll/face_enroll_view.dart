@@ -23,8 +23,12 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
   TextEditingController controller = TextEditingController();
   final picker = ImagePicker();
   File _image;
+  bool processingPhoto = false;
 
   void selectImage() {
+    setState(() {
+      processingPhoto = true;
+    });
     showCustomDialog(
         context: context,
         builder: (context) {
@@ -59,6 +63,7 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
           .writeAsBytes(imglib.encodePng(resizedImage));
       if (_processedFile != null) {
         setState(() {
+          processingPhoto = false;
           _image = _processedFile;
         });
       }
@@ -68,13 +73,23 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
   }
 
   void enrollUser() async {
-    bool success = await AuthenticationRepository.enrollFace(_image,
-        subjectId: controller.value.text.trim(),
-        galleryName: ConstantHelper.FacialGallery);
-    if (success) {
-      NavigationController.navigation = NavigationTabs(NavTab.LoginDni);
+    String dni = controller.value.text.trim();
+    if (dni != null && dni.isNotEmpty) {
+      if (_image != null) {
+        bool success = await AuthenticationRepository.enrollFace(_image,
+            subjectId: controller.value.text.trim(),
+            galleryName: ConstantHelper.FacialGallery);
+            if (success) {
+              NavigationController.navigation =
+                      NavigationTabs(NavTab.FaceDetection, params: dni);
+            } 
+      } else {
+        GlobalDialogs.displayGeneralDialog(
+            text: "Se requiere una foto para el registro");
+      }
     } else {
-      GlobalDialogs.displayGeneralDialog(text: "Fallo registro de usuario");
+      GlobalDialogs.displayGeneralDialog(
+          text: "Se requiere su dni para el registro");
     }
   }
 
@@ -84,7 +99,9 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
         child: SafeArea(
           child: Scaffold(
             backgroundColor: AppColors.DarkLiver,
-            body: _buildContent(),
+            body: SingleChildScrollView(
+              child: _buildContent(),
+            ),
           ),
         ),
         onWillPop: () async {
@@ -99,11 +116,77 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          SizedBox(height: 50),
-          Text("Registro",
-              style: AppTextStyle.whiteStyle(fontSize: AppFontSizes.title36)),
           SizedBox(height: 20),
-          _image != null ? _buildImage() : _buildPlaceholder(),
+          Padding(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).size.height * .01,
+              left: MediaQuery.of(context).size.width * .05,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+                SizedBox(
+                  height: 60,
+                  width: 60,
+                  child: FlatButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      NavigationController.navigation =
+                          NavigationTabs(NavTab.LoginDni);
+                    },
+                    child: Icon(
+                      Icons.close,
+                      size: 50,
+                      color: AppColors.PrimaryWhite,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 50),
+          Text("Registra tus datos",
+              style: AppTextStyle.whiteStyle(fontSize: AppFontSizes.title36)),
+          SizedBox(height: 40),
+          SizedBox(
+            height: 180,
+            width: 180,
+            child: GestureDetector(
+              onTap: selectImage,
+              child: Stack(children: <Widget>[
+                processingPhoto
+                    ? _buildProcessingImage()
+                    : (_image != null ? _buildImage() : _buildPlaceholder()),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: AppColors.MountbattenPink,
+                      shape: BoxShape.circle,
+                      boxShadow: <BoxShadow>[
+                        BoxShadow(
+                          color: AppColors.PrimaryBlack.withAlpha(50),
+                          offset: Offset(2.0, 2.0),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.edit,
+                        color: AppColors.PrimaryWhite,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+          SizedBox(height: 20),
+          Text("Sube tu foto",
+              style: AppTextStyle.whiteStyle(fontSize: AppFontSizes.title18)),
           SizedBox(height: 40),
           Container(
             height: 50,
@@ -126,7 +209,7 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
                   fontSize: AppFontSizes.text14,
                 ),
                 decoration: InputDecoration.collapsed(
-                  hintText: "Ingrese dni...",
+                  hintText: "Ingresa tu dni aquí...",
                   hintStyle: AppTextStyle.darkGreyStyle(
                     fontSize: AppFontSizes.text14,
                   ),
@@ -150,15 +233,10 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
             ),
             child: FlatButton(
               padding: EdgeInsets.zero,
-              onPressed: () {
-                String dni = controller.value.text.trim();
-                if (dni != null && dni.isNotEmpty) {
-                  enrollUser();
-                }
-              },
+              onPressed: enrollUser,
               child: Center(
                 child: Text(
-                  "Continuar",
+                  "Guardar",
                   style:
                       AppTextStyle.whiteStyle(fontSize: AppFontSizes.subitle16),
                 ),
@@ -171,57 +249,66 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
   }
 
   Widget _buildImage() {
-    return GestureDetector(
-      onTap: selectImage,
-      child: Container(
-        height: 180,
-        width: 180,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-            image: FileImage(_image),
-            fit: BoxFit.fill,
-          ),
+    return Container(
+      height: 180,
+      width: 180,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        image: DecorationImage(
+          image: FileImage(_image),
+          fit: BoxFit.fill,
         ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AppColors.PrimaryBlack.withAlpha(50),
+            offset: Offset(2.0, 2.0),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPlaceholder() {
-    return GestureDetector(
-      onTap: selectImage,
-      child: Container(
-        height: 180,
-        width: 180,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.ShadowBlue,
-        ),
-        child: Center(
-          child: Icon(
-            Icons.person,
-            color: AppColors.PrimaryWhite,
-            size: 100,
+    return Container(
+      height: 180,
+      width: 180,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.ShadowBlue,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AppColors.PrimaryBlack.withAlpha(50),
+            offset: Offset(2.0, 2.0),
           ),
+        ],
+      ),
+      child: Center(
+        child: Icon(
+          Icons.person,
+          color: AppColors.PrimaryWhite,
+          size: 100,
         ),
       ),
     );
   }
 
   Widget _buildProcessingImage() {
-    return GestureDetector(
-      onTap: selectImage,
-      child: Container(
-        height: 180,
-        width: 180,
-        padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.ShadowBlue,
-        ),
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
+    return Container(
+      height: 180,
+      width: 180,
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.ShadowBlue,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AppColors.PrimaryBlack.withAlpha(50),
+            offset: Offset(2.0, 2.0),
+          ),
+        ],
+      ),
+      child: Center(
+        child: CircularProgressIndicator(),
       ),
     );
   }
