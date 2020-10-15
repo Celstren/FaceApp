@@ -1,3 +1,4 @@
+import 'package:FaceApp/utils/exports/app_design.dart';
 import 'package:flutter/material.dart';
 
 class HomeView extends StatefulWidget {
@@ -11,13 +12,11 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-          appBar: AppBar(
-            title: const Text('Inicio'),
-          ),
-          backgroundColor: Colors.white,
-          body: Center(
-            child: Text("Verificación exitosa"),
-          ),
-        );
+      backgroundColor: AppColors.DarkLiver,
+      body: Center(
+        child: Text("Verificación exitosa",
+            style: AppTextStyle.whiteStyle(fontSize: AppFontSizes.title24)),
+      ),
+    );
   }
 }

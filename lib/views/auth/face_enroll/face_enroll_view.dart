@@ -4,6 +4,7 @@ import 'package:FaceApp/navigation/navigation_controller.dart';
 import 'package:FaceApp/navigation/navigation_tabs.dart';
 import 'package:FaceApp/services/auth/authentication_repository.dart';
 import 'package:FaceApp/utils/exports/app_design.dart';
+import 'package:FaceApp/utils/general/constant_helper.dart';
 import 'package:FaceApp/utils/widgets/custom_dialog.dart';
 import 'package:FaceApp/utils/widgets/global_dialogs.dart';
 import 'package:FaceApp/utils/widgets/two_options_dialog.dart';
@@ -67,7 +68,9 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
   }
 
   void enrollUser() async {
-    bool success = await AuthenticationRepository.enrollFace(_image, subjectId: controller.value.text.trim(), galleryName: "MyGallery");
+    bool success = await AuthenticationRepository.enrollFace(_image,
+        subjectId: controller.value.text.trim(),
+        galleryName: ConstantHelper.FacialGallery);
     if (success) {
       NavigationController.navigation = NavigationTabs(NavTab.LoginDni);
     } else {
@@ -77,12 +80,17 @@ class _FaceEnrollViewState extends State<FaceEnrollView> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: AppColors.DarkLiver,
-        body: _buildContent(),
-      ),
-    );
+    return WillPopScope(
+        child: SafeArea(
+          child: Scaffold(
+            backgroundColor: AppColors.DarkLiver,
+            body: _buildContent(),
+          ),
+        ),
+        onWillPop: () async {
+          NavigationController.navigation = NavigationTabs(NavTab.LoginDni);
+          return false;
+        });
   }
 
   Widget _buildContent() {

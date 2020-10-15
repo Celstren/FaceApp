@@ -8,6 +8,5 @@ enum NavTab {
   LoginDni,
   FaceEnroll,
   FaceDetection,
-  FaceComparison,
   Home,
 }

@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'dart:ui' as ui;
+import 'package:FaceApp/utils/exports/app_design.dart';
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +25,7 @@ class BarcodeDetectorPainter extends CustomPainter {
     for (Barcode barcode in barcodes) {
       paint.color = Colors.green;
       canvas.drawRect(
-        _scaleRect(
+        scaleRect(
           rect: barcode.boundingBox,
           imageSize: imageSize,
           widgetSize: size,
@@ -58,7 +59,7 @@ class FaceDetectorPainter extends CustomPainter {
 
     for (Face face in faces) {
       canvas.drawRect(
-        _scaleRect(
+        scaleRect(
           rect: face.boundingBox,
           imageSize: imageSize,
           widgetSize: size,
@@ -71,6 +72,32 @@ class FaceDetectorPainter extends CustomPainter {
   @override
   bool shouldRepaint(FaceDetectorPainter oldDelegate) {
     return oldDelegate.imageSize != imageSize || oldDelegate.faces != faces;
+  }
+}
+
+class RectPainter extends CustomPainter {
+  RectPainter(this.imageSize, this.imageRect);
+
+  final Size imageSize;
+  final Rect imageRect;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    
+    final Paint paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..color = AppColors.ShadowBlue;
+
+    canvas.drawRect(
+        imageRect,
+        paint,
+      );
+  }
+
+  @override
+  bool shouldRepaint(RectPainter oldDelegate) {
+    return oldDelegate.imageSize != imageSize;
   }
 }
 
@@ -125,7 +152,7 @@ class TextDetectorPainter extends CustomPainter {
       ..strokeWidth = 2.0;
 
     Rect _getRect(TextContainer container) {
-      return _scaleRect(
+      return scaleRect(
         rect: container.boundingBox,
         imageSize: imageSize,
         widgetSize: size,
@@ -155,7 +182,7 @@ class TextDetectorPainter extends CustomPainter {
   }
 }
 
-Rect _scaleRect({
+Rect scaleRect({
   @required Rect rect,
   @required Size imageSize,
   @required Size widgetSize,

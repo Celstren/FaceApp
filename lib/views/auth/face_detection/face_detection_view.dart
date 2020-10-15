@@ -2,6 +2,11 @@ import 'dart:io';
 
 import 'package:FaceApp/navigation/navigation_controller.dart';
 import 'package:FaceApp/navigation/navigation_tabs.dart';
+import 'package:FaceApp/services/auth/authentication_repository.dart';
+import 'package:FaceApp/utils/exports/app_design.dart';
+import 'package:FaceApp/utils/general/constant_helper.dart';
+import 'package:FaceApp/utils/widgets/custom_dialog.dart';
+import 'package:FaceApp/utils/widgets/two_options_dialog.dart';
 import 'package:FaceApp/views/auth/face_detection/logic/detector_painters.dart';
 import 'package:FaceApp/views/auth/face_detection/logic/methods.dart';
 import 'package:camera/camera.dart';
@@ -11,17 +16,24 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 class FaceDetectionView extends StatefulWidget {
+  final String dni;
+  const FaceDetectionView({Key key, this.dni = ""}) : super(key: key);
+
   @override
   _FaceDetectionViewState createState() => _FaceDetectionViewState();
 }
 
-class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindingObserver {
+class _FaceDetectionViewState extends State<FaceDetectionView>
+    with WidgetsBindingObserver {
   dynamic _scanResults;
   CameraController _camera;
 
   Detector _currentDetector = Detector.face;
   bool _isDetecting = false, _isProcessingPhoto = false, _isToggling = false;
   CameraLensDirection _direction = CameraLensDirection.front;
+  Rect scannerRect, scannerCenterRect;
+  double minFaceWidth = 0, minFaceHeight = 0;
+  bool sizesInitialized = false;
 
   @override
   void initState() {
@@ -32,7 +44,6 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
 
   @override
   void dispose() {
-    print("Cerrar camara");
     _camera?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -50,6 +61,29 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
       if (_camera != null) {
         onNewCameraSelected(_camera.description);
       }
+    }
+  }
+
+  void _initSizes() {
+    if (!sizesInitialized) {
+      final double globalWidth = MediaQuery.of(context).size.width;
+      final double globalHeight = MediaQuery.of(context).size.height;
+      scannerRect = Rect.fromLTRB(
+        globalWidth * .15,
+        globalHeight * .2,
+        globalWidth * .85,
+        globalHeight * .8,
+      );
+      scannerCenterRect = Rect.fromCenter(
+        center: scannerRect.center,
+        width: MediaQuery.of(context).size.width * .1,
+        height: MediaQuery.of(context).size.height * .1,
+      );
+      minFaceWidth = MediaQuery.of(context).size.width *
+          ConstantHelper.MinFaceWidthPercentage;
+      minFaceHeight = MediaQuery.of(context).size.height *
+          ConstantHelper.MinFaceHeightPercentage;
+      sizesInitialized = true;
     }
   }
 
@@ -73,6 +107,7 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
         if (_isDetecting) return;
 
         _isDetecting = true;
+        _isProcessingPhoto = false;
 
         detect(image, _getDetectionMethod(), rotation).then(
           (dynamic result) {
@@ -160,20 +195,23 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
         break;
       case Detector.face:
         if (_scanResults is! List<Face>) return noResultsText;
-        // processFaceDetected();
-        // painter = FaceDetectorPainter(imageSize, _scanResults, context);
-        if (_scanResults.isNotEmpty && _scanResults.first is Face) {
-          processPhoto();
+        if (_scanResults.isNotEmpty && scannerCenterRect != null) {
+          Face faceDetected = _scanResults.firstWhere((element) {
+            if (element is! Face) return false;
+            Rect faceRect = scaleRect(
+                rect: element.boundingBox,
+                imageSize: imageSize,
+                widgetSize: MediaQuery.of(context).size);
+            bool isInCenter = scannerCenterRect.contains(faceRect.center);
+            bool validWidth = faceRect.size.width >= minFaceWidth;
+            bool validHeight = faceRect.size.height >= minFaceHeight;
+            return isInCenter && validWidth && validHeight;
+          }, orElse: () => null);
+          if (faceDetected != null) {
+            processPhoto();
+          }
         }
         break;
-      // case Detector.label:
-      //   if (_scanResults is! List<Label>) return noResultsText;
-      //   painter = LabelDetectorPainter(imageSize, _scanResults);
-      //   break;
-      // case Detector.cloudLabel:
-      //   if (_scanResults is! List<Label>) return noResultsText;
-      //   painter = LabelDetectorPainter(imageSize, _scanResults);
-      //   break;
       default:
         assert(_currentDetector == Detector.text);
         if (_scanResults is! VisionText) return noResultsText;
@@ -185,7 +223,14 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
     );
   }
 
-  Widget _buildImage() {
+  Widget _buildScannerArea() {
+    if (scannerRect == null) return Container();
+    return CustomPaint(
+      painter: RectPainter(MediaQuery.of(context).size, scannerRect),
+    );
+  }
+
+  Widget _buildContent() {
     return Container(
       constraints: const BoxConstraints.expand(),
       child: _camera == null
@@ -203,6 +248,51 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
               children: <Widget>[
                 CameraPreview(_camera),
                 _buildResults(),
+                _buildScannerArea(),
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).size.height * .1,
+                    left: MediaQuery.of(context).size.width * .2,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: <Widget>[
+                      SizedBox(
+                        height: 80,
+                        width: 80,
+                        child: FlatButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            NavigationController.navigation =
+                                NavigationTabs(NavTab.LoginDni);
+                          },
+                          child: Icon(
+                            Icons.arrow_back,
+                            size: 50,
+                            color: AppColors.PrimaryWhite,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).size.height * .1),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      Text(
+                        "Por favor enfoque su cara",
+                        textAlign: TextAlign.center,
+                        style: AppTextStyle.whiteStyle(
+                          fontFamily: AppFonts.Montserrat_Bold,
+                          fontSize: AppFontSizes.title18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
     );
@@ -235,7 +325,40 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
         _isProcessingPhoto = true;
         await _camera.stopImageStream();
         String path = await takePicture();
-        NavigationController.navigation = NavigationTabs(NavTab.FaceComparison, params: path);
+        File photo = File(path);
+        bool success = await AuthenticationRepository.verifyFace(photo,
+            subjectId: widget.dni, galleryName: ConstantHelper.FacialGallery);
+        if (success) {
+          await Future.delayed(Duration(seconds: 1));
+          NavigationController.navigation = NavigationTabs(NavTab.Home);
+        } else {
+          showCustomDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                return CustomDialog(
+                  child: TwoOptionsDialog(
+                    title: "Fallo autenticación facial",
+                    leftOptionText: "Cancelar",
+                    onLeftPress: () async {
+                      Navigator.pop(context);
+                      await Future.delayed(Duration(seconds: 1));
+                      NavigationController.navigation =
+                          NavigationTabs(NavTab.LoginDni);
+                    },
+                    rightOptionText: "Reintentar",
+                    onRightPress: () async {
+                      await _camera.dispose();
+                      setState(() {
+                        _camera = null;
+                      });
+                      await _initializeCamera();
+                      Navigator.pop(context);
+                    },
+                  ),
+                );
+              });
+        }
       }
     } catch (e) {
       print("No se pudo tomar una foto\nError: $e");
@@ -250,7 +373,8 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
     final Directory extDir = await getApplicationDocumentsDirectory();
     final String dirPath = '${extDir.path}/Pictures/flutter_test';
     await Directory(dirPath).create(recursive: true);
-    final String filePath = '$dirPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final String filePath =
+        '$dirPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
 
     if (_camera.value.isTakingPicture) {
       // A capture is already pending, do nothing.
@@ -268,16 +392,22 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _buildImage(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _toggleCameraDirection,
-        child: _isToggling
-            ? CircularProgressIndicator()
-            : _direction == CameraLensDirection.back
-                ? const Icon(Icons.camera_front)
-                : const Icon(Icons.camera_rear),
-      ),
-    );
+    _initSizes();
+    return WillPopScope(
+        child: Scaffold(
+          body: _buildContent(),
+          floatingActionButton: FloatingActionButton(
+            onPressed: _toggleCameraDirection,
+            child: _isToggling
+                ? CircularProgressIndicator()
+                : _direction == CameraLensDirection.back
+                    ? const Icon(Icons.camera_front)
+                    : const Icon(Icons.camera_rear),
+          ),
+        ),
+        onWillPop: () async {
+          NavigationController.navigation = NavigationTabs(NavTab.LoginDni);
+          return false;
+        });
   }
 }
