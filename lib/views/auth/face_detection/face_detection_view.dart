@@ -9,7 +9,6 @@ import 'package:firebase_ml_vision/firebase_ml_vision.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' show join;
 
 class FaceDetectionView extends StatefulWidget {
   @override
@@ -23,7 +22,6 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
   Detector _currentDetector = Detector.face;
   bool _isDetecting = false, _isProcessingPhoto = false, _isToggling = false;
   CameraLensDirection _direction = CameraLensDirection.front;
-  CameraImage _cameraImage;
 
   @override
   void initState() {
@@ -75,7 +73,6 @@ class _FaceDetectionViewState extends State<FaceDetectionView> with WidgetsBindi
         if (_isDetecting) return;
 
         _isDetecting = true;
-        _cameraImage = image;
 
         detect(image, _getDetectionMethod(), rotation).then(
           (dynamic result) {

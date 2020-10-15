@@ -9,4 +9,5 @@ enum NavTab {
   FaceEnroll,
   FaceDetection,
   FaceComparison,
+  Home,
 }
